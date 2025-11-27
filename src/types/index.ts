@@ -27,5 +27,5 @@ export interface UserData {
   isOnboarded: boolean;
 }
 
-export type ViewType = 'loading' | 'intro' | 'quiz' | 'analysis' | 'dashboard' | 'calendar' | 'urges' | 'plan';
+export type ViewType = 'loading' | 'auth' | 'intro' | 'quiz' | 'analysis' | 'dashboard' | 'calendar' | 'urges' | 'plan';
 

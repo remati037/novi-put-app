@@ -9,6 +9,7 @@ Modern React aplikacija za praćenje oporavka i izgradnju boljih navika. Aplikac
 - **Vite** - Brzi build tool i dev server
 - **Tailwind CSS** - Utility-first CSS framework
 - **Lucide React** - Moderna ikona biblioteka
+- **Supabase** - Backend-as-a-Service (authentication & database)
 
 ## 📁 Struktura Projekta
 
@@ -23,7 +24,14 @@ novi-put-app/
 │   │   ├── UrgesScreen.tsx
 │   │   ├── PlanScreen.tsx
 │   │   ├── CalendarScreen.tsx
-│   │   └── BottomNav.tsx
+│   │   ├── BottomNav.tsx
+│   │   └── AuthScreen.tsx
+│   ├── contexts/           # React Context providers
+│   │   └── AuthContext.tsx
+│   ├── services/            # API services
+│   │   └── userDataService.ts
+│   ├── lib/                 # Library configurations
+│   │   └── supabase.ts
 │   ├── data/                # Podaci aplikacije
 │   │   └── quizQuestions.ts
 │   ├── utils/               # Pomoćne funkcije
@@ -33,6 +41,8 @@ novi-put-app/
 │   ├── App.tsx              # Glavna komponenta
 │   ├── main.tsx             # Entry point
 │   └── index.css            # Globalni stilovi
+├── supabase/                # Supabase SQL schemas
+│   └── schema.sql
 ├── public/                  # Statički fajlovi
 ├── index.html               # HTML template
 ├── package.json             # Dependencies
@@ -57,7 +67,39 @@ npm --version
 
 ## 🛠️ Instalacija i Pokretanje
 
-### Korak 1: Instalacija Dependencies
+### Korak 1: Kreiranje Supabase Projekta
+
+1. Idite na [supabase.com](https://supabase.com) i kreirajte novi projekat
+2. Sačekajte da se projekat inicijalizuje (može potrajati nekoliko minuta)
+3. Nakon što je projekat spreman, idite na **Settings** → **API**
+4. Kopirajte sledeće vrednosti:
+   - **Project URL** (to je vaš `VITE_SUPABASE_URL`)
+   - **anon/public key** (to je vaš `VITE_SUPABASE_ANON_KEY`)
+
+### Korak 2: Konfiguracija Environment Variables
+
+1. Kreirajte `.env` fajl u root direktorijumu projekta:
+```bash
+cp .env.example .env
+```
+
+2. Otvorite `.env` fajl i dodajte vaše Supabase credentials:
+```env
+VITE_SUPABASE_URL=your_supabase_project_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
+
+**Važno:** Zamenite `your_supabase_project_url` i `your_supabase_anon_key` sa stvarnim vrednostima iz Supabase dashboard-a.
+
+### Korak 3: Setup Supabase Database
+
+1. U Supabase dashboard-u, idite na **SQL Editor**
+2. Otvorite fajl `supabase/schema.sql` iz ovog projekta
+3. Kopirajte ceo SQL kod i paste-ujte ga u SQL Editor
+4. Kliknite **Run** da izvršite SQL skriptu
+5. Ovo će kreirati `user_data` tabelu sa potrebnim Row Level Security policies
+
+### Korak 4: Instalacija Dependencies
 
 Ako već niste instalirali dependencies, pokrenite:
 
@@ -67,7 +109,7 @@ npm install
 
 Ova komanda će instalirati sve potrebne pakete definisane u `package.json` fajlu.
 
-### Korak 2: Pokretanje Development Servera
+### Korak 5: Pokretanje Development Servera
 
 Za pokretanje aplikacije u development modu, pokrenite:
 
@@ -79,7 +121,13 @@ Aplikacija će biti dostupna na `http://localhost:5173` (ili drugom portu ako je
 
 Otvorite browser i idite na adresu koja će biti prikazana u terminalu.
 
-### Korak 3: Build za Production
+**Prvi put kada otvorite aplikaciju:**
+- Videćete login ekran
+- Možete kreirati novi nalog sa email i password
+- Nakon registracije, proverite email za potvrdu (ako je email confirmation omogućen u Supabase)
+- Nakon prijave, vaši podaci će se automatski čuvati u Supabase bazi
+
+### Korak 6: Build za Production
 
 Kada ste spremni da napravite production build, pokrenite:
 
@@ -89,7 +137,7 @@ npm run build
 
 Ova komanda će kreirati optimizovani build u `dist/` folderu.
 
-### Korak 4: Preview Production Builda
+### Korak 7: Preview Production Builda
 
 Da biste videli kako će production build izgledati, pokrenite:
 
@@ -139,16 +187,27 @@ npm run preview
 - Brza navigacija između glavnih sekcija
 - SOS dugme za hitne situacije
 
-## 💾 Lokalno Skladištenje
+### 9. **Autentifikacija (Auth)**
+- Email/password registracija i prijava
+- Automatska sinhronizacija podataka sa Supabase
+- Logout funkcionalnost
+- Podaci su vezani za korisnički nalog
 
-Aplikacija koristi `localStorage` za čuvanje podataka korisnika. Svi podaci se čuvaju lokalno u browseru i ne šalju se na server.
+## 💾 Skladištenje Podataka
 
-Podaci koji se čuvaju:
+Aplikacija koristi **Supabase** za čuvanje podataka korisnika. Svi podaci se čuvaju u cloud bazi podataka i vezani su za korisnički nalog.
+
+### Podaci koji se čuvaju:
 - Odgovori na kviz
 - Datum početka niza
 - Istorija iskušenja
 - Napredak u planu
 - Status onboarding-a
+
+### Sigurnost:
+- Row Level Security (RLS) omogućava korisnicima da vide samo svoje podatke
+- Svi podaci su zaštićeni autentifikacijom
+- Automatska enkripcija u tranzitu i na serveru
 
 ## 🎨 Stilizovanje
 
@@ -178,7 +237,25 @@ Projekat koristi TypeScript za tipizaciju. Sve komponente i funkcije imaju defin
 
 - Aplikacija je optimizovana za mobilne uređaje
 - Responsive design za različite veličine ekrana
-- Sve funkcionalnosti rade offline (osim ako ne dodate server funkcionalnosti)
+- Podaci se automatski sinhronizuju sa Supabase bazom
+- Korisnici mogu pristupiti svojim podacima sa bilo kog uređaja nakon prijave
+
+## 🔐 Supabase Konfiguracija
+
+### Email Confirmation
+
+Po defaultu, Supabase zahteva email potvrdu. Možete to promeniti:
+
+1. U Supabase dashboard-u, idite na **Authentication** → **Settings**
+2. U sekciji **Email Auth**, možete onemogućiti "Enable email confirmations"
+3. **Napomena:** Za production, preporučeno je da ostavite email confirmation uključen
+
+### Row Level Security
+
+RLS policies su već konfigurisane u `schema.sql` fajlu. Oni osiguravaju da:
+- Korisnici mogu čitati samo svoje podatke
+- Korisnici mogu ažurirati samo svoje podatke
+- Korisnici mogu brisati samo svoje podatke
 
 ## 🐛 Rešavanje Problema
 
@@ -194,6 +271,35 @@ npm install
 
 ### Problem: TypeScript errors
 **Rešenje:** Proverite da li su svi tipovi pravilno importovani i da li `tsconfig.json` postoji.
+
+### Problem: Supabase connection errors
+**Rešenje:** 
+1. Proverite da li su environment variables pravilno postavljene u `.env` fajlu
+2. Proverite da li je Supabase projekat aktivan
+3. Proverite da li je SQL schema izvršen u Supabase SQL Editor-u
+4. Proverite browser console za detaljnije greške
+
+### Problem: Authentication not working
+**Rešenje:**
+1. Proverite da li je email confirmation omogućen/onemogućen prema vašim potrebama
+2. Proverite da li su Supabase credentials ispravni
+3. Proverite Supabase dashboard za auth logs
+
+## 🚀 Deployment na Vercel
+
+Aplikacija je spremna za deployment na Vercel. Za detaljne instrukcije, pogledajte [VERCEL_DEPLOYMENT.md](./VERCEL_DEPLOYMENT.md).
+
+### Brzi Start:
+
+1. **Dodajte Environment Variables u Vercel:**
+   - `VITE_SUPABASE_URL` - Vaš Supabase URL
+   - `VITE_SUPABASE_ANON_KEY` - Vaš Supabase anon key
+
+2. **Redeploy aplikaciju** (automatski se dešava nakon git push-a)
+
+3. **Konfigurišite Supabase Redirect URLs** sa vašim Vercel domenom
+
+Za više detalja, pogledajte `VERCEL_DEPLOYMENT.md`.
 
 ## 📄 Licenca
 

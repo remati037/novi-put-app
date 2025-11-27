@@ -1,4 +1,4 @@
-import { AlertTriangle, BookOpen, Calendar, Zap } from 'lucide-react';
+import { AlertTriangle, BookOpen, Calendar, Zap, LogOut } from 'lucide-react';
 import { UserData, ViewType } from '../types';
 import { calculateStreak, getAdvice } from '../utils/helpers';
 
@@ -6,11 +6,18 @@ interface DashboardScreenProps {
   userData: UserData;
   onViewChange: (view: ViewType) => void;
   onResetStreak: () => void;
+  onSignOut: () => Promise<void>;
 }
 
-export const DashboardScreen = ({ userData, onViewChange, onResetStreak }: DashboardScreenProps) => {
+export const DashboardScreen = ({ userData, onViewChange, onResetStreak, onSignOut }: DashboardScreenProps) => {
   const days = calculateStreak(userData.streakStart);
   const advice = getAdvice(userData.quizAnswers);
+
+  const handleSignOut = async () => {
+    if (window.confirm('Da li ste sigurni da želite da se odjavite?')) {
+      await onSignOut();
+    }
+  };
 
   return (
     <div className="pb-24 pt-6 px-4 max-w-md mx-auto space-y-6">
@@ -19,9 +26,14 @@ export const DashboardScreen = ({ userData, onViewChange, onResetStreak }: Dashb
           <h1 className="text-2xl font-bold text-slate-800">Zdravo, Borče</h1>
           <p className="text-slate-500 text-sm">Svaki dan je nova pobeda.</p>
         </div>
-        <button onClick={() => onViewChange('urges')} className="bg-rose-100 text-rose-600 p-2 rounded-full hover:bg-rose-200 transition-colors">
-          <AlertTriangle className="w-6 h-6" />
-        </button>
+        <div className="flex gap-2">
+          <button onClick={() => onViewChange('urges')} className="bg-rose-100 text-rose-600 p-2 rounded-full hover:bg-rose-200 transition-colors">
+            <AlertTriangle className="w-6 h-6" />
+          </button>
+          <button onClick={handleSignOut} className="bg-slate-100 text-slate-600 p-2 rounded-full hover:bg-slate-200 transition-colors" title="Odjavi se">
+            <LogOut className="w-6 h-6" />
+          </button>
+        </div>
       </div>
 
       <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-3xl p-8 text-center text-white shadow-xl shadow-slate-900/20 relative overflow-hidden">

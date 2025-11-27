@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { UserData, ViewType, QuizOption, UrgeLog } from './types';
-import { loadUserData, saveUserData } from './utils/helpers';
+import { useAuth } from './contexts/AuthContext';
+import { userDataService } from './services/userDataService';
+import { AuthScreen } from './components/AuthScreen';
 import { IntroScreen } from './components/IntroScreen';
 import { QuizScreen } from './components/QuizScreen';
 import { AnalysisScreen } from './components/AnalysisScreen';
@@ -22,22 +24,57 @@ const initialUserData: UserData = {
 };
 
 export default function App() {
+  const { user, loading: authLoading, signOut } = useAuth();
   const [view, setView] = useState<ViewType>('loading');
   const [userData, setUserData] = useState<UserData>(initialUserData);
+  const [dataLoading, setDataLoading] = useState(true);
 
+  // Load user data from Supabase when user is authenticated
   useEffect(() => {
-    const saved = loadUserData();
-    if (saved) {
-      setUserData(saved);
-      setView(saved.isOnboarded ? 'dashboard' : 'intro');
-    } else {
-      setView('intro');
+    if (authLoading) return;
+
+    if (!user) {
+      setView('auth');
+      setDataLoading(false);
+      return;
     }
-  }, []);
 
+    // Load user data from Supabase
+    const loadUserData = async () => {
+      setDataLoading(true);
+      try {
+        const data = await userDataService.getUserData(user.id);
+        if (data) {
+          setUserData(data);
+          setView(data.isOnboarded ? 'dashboard' : 'intro');
+        } else {
+          // New user, start with intro
+          setUserData(initialUserData);
+          setView('intro');
+        }
+      } catch (error) {
+        console.error('Error loading user data:', error);
+        setUserData(initialUserData);
+        setView('intro');
+      } finally {
+        setDataLoading(false);
+      }
+    };
+
+    loadUserData();
+  }, [user, authLoading]);
+
+  // Save user data to Supabase whenever it changes
   useEffect(() => {
-    saveUserData(userData);
-  }, [userData]);
+    if (!user || dataLoading || view === 'auth' || view === 'loading') return;
+
+    // Debounce saves to avoid too many API calls
+    const timeoutId = setTimeout(async () => {
+      await userDataService.saveUserData(user.id, userData);
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [userData, user, dataLoading, view]);
 
   const handleResetStreak = () => {
     if (window.confirm("Da li ste sigurni da želite da resetujete niz? Iskrenost je ključ oporavka.")) {
@@ -91,8 +128,24 @@ export default function App() {
     setUserData({ ...userData, planProgress: newChecked });
   };
 
+  const handleAuthSuccess = () => {
+    // After successful auth, data will be loaded in useEffect
+    setView('loading');
+  };
+
   // Router
-  if (view === 'loading') return null;
+  if (authLoading || (view === 'loading' && dataLoading)) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-slate-900">
+        <div className="text-white text-xl">Učitavanje...</div>
+      </div>
+    );
+  }
+
+  if (view === 'auth' || !user) {
+    return <AuthScreen onAuthSuccess={handleAuthSuccess} />;
+  }
+
   if (view === 'intro') return <IntroScreen onStart={() => setView('quiz')} />;
   if (view === 'quiz') return <QuizScreen onComplete={handleQuizComplete} />;
   if (view === 'analysis') return (
@@ -109,6 +162,7 @@ export default function App() {
           userData={userData}
           onViewChange={setView}
           onResetStreak={handleResetStreak}
+          onSignOut={signOut}
         />
       )}
       {view === 'calendar' && (
